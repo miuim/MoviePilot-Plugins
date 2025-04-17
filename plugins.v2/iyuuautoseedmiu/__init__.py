@@ -1245,6 +1245,9 @@ class IYUUAutoSeedMiu(_PluginBase):
             将mteam种子下载链接域名替换为使用API
             """
             api_url = re.sub(r'//[^/]+\.m-team', '//api.m-team', site.get('url'))
+            logger.debug(f"m-team API URL: {api_url}")
+            logger.debug(f"m-team API Key: {apikey[:4]}...{apikey[-4:]}")
+            logger.debug(f"m-team Torrent ID: {tid}")
 
             res = RequestUtils(
                 headers={
@@ -1257,9 +1260,20 @@ class IYUUAutoSeedMiu(_PluginBase):
                 'id': tid
             })
             if not res:
-                logger.warn(f"m-team 获取种子下载链接失败：{tid}")
+                logger.error(f"m-team API请求失败，状态码：{res.status_code if res else 'None'}")
                 return None
-            return res.json().get("data")
+            
+            try:
+                response_data = res.json()
+                logger.debug(f"m-team API响应：{response_data}")
+                if 'data' in response_data:
+                    return response_data.get("data")
+                else:
+                    logger.error(f"m-team API响应格式错误：{response_data}")
+                    return None
+            except Exception as e:
+                logger.error(f"解析m-team API响应失败：{str(e)}")
+                return None
 
         def __get_monika_torrent(tid: str, rssurl: str):
             """
@@ -1291,6 +1305,10 @@ class IYUUAutoSeedMiu(_PluginBase):
             return False
 
         try:
+            logger.debug(f"开始处理种子下载链接，站点：{site.get('name')}，种子ID：{seed.get('torrent_id')}")
+            logger.debug(f"站点URL：{site.get('url')}")
+            logger.debug(f"基础URL：{base_url}")
+
             if __is_mteam(site.get('url')):
                 # 调用mteam接口获取下载链接
                 return __get_mteam_enclosure(tid=seed.get("torrent_id"), apikey=site.get("apikey"))
