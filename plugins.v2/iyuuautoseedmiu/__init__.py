@@ -18,16 +18,16 @@ from app.helper.sites import SitesHelper
 from app.helper.torrent import TorrentHelper
 from app.log import logger
 from app.plugins import _PluginBase
-from app.plugins.iyuuautoseed.iyuu_helper import IyuuHelper
+from app.plugins.iyuuautoseedmiu.iyuu_helper import IyuuHelper
 from app.schemas import NotificationType, ServiceInfo
 from app.schemas.types import EventType
 from app.utils.http import RequestUtils
 from app.utils.string import StringUtils
 
 
-class IYUUAutoSeed(_PluginBase):
+class IYUUAutoSeedMiu(_PluginBase):
     # 插件名称
-    plugin_name = "IYUU自动辅种"
+    plugin_name = "IYUU自动辅种 Miu版"
     # 插件描述
     plugin_desc = "基于IYUU官方Api实现自动辅种。"
     # 插件图标
@@ -35,11 +35,11 @@ class IYUUAutoSeed(_PluginBase):
     # 插件版本
     plugin_version = "2.13"
     # 插件作者
-    plugin_author = "jxxghp,CKun"
+    plugin_author = "jxxghp,CKun,Miu"
     # 作者主页
     author_url = "https://github.com/jxxghp"
     # 插件配置项ID前缀
-    plugin_config_prefix = "iyuuautoseed_"
+    plugin_config_prefix = "iyuuautoseedmiu_"
     # 加载顺序
     plugin_order = 17
     # 可使用的用户级别
@@ -231,8 +231,8 @@ class IYUUAutoSeed(_PluginBase):
         """
         if self.get_state():
             return [{
-                "id": "IYUUAutoSeed",
-                "name": "IYUU自动辅种服务",
+                "id": "IYUUAutoSeedMiu",
+                "name": "IYUU自动辅种 Miu版服务",
                 "trigger": CronTrigger.from_crontab(self._cron),
                 "func": self.auto_seed,
                 "kwargs": {}
@@ -618,7 +618,7 @@ class IYUUAutoSeed(_PluginBase):
                                             {
                                                 'component': 'a',
                                                 'props': {
-                                                    'href': 'https://github.com/jxxghp/MoviePilot-Plugins/tree/main/plugins.v2/iyuuautoseed/README.md',
+                                                    'href': 'https://github.com/miuim/MoviePilot-Plugins/tree/main/plugins.v2/iyuuautoseedmiu/README.md',
                                                     'target': '_blank'
                                                 },
                                                 'content': [
@@ -779,7 +779,7 @@ class IYUUAutoSeed(_PluginBase):
             if self.success or self.fail:
                 self.post_message(
                     mtype=NotificationType.SiteMessage,
-                    title="【IYUU自动辅种任务完成】",
+                    title="【IYUU自动辅种 Miu版任务完成】",
                     text=f"服务器返回可辅种总数：{self.total}\n"
                          f"实际可辅种数：{self.realtotal}\n"
                          f"已存在：{self.exist}\n"

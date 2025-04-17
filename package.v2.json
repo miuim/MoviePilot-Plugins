@@ -1,11 +1,11 @@
 {
-    "IYUUAutoSeed": {
-        "name": "IYUU自动辅种",
+    "IYUUAutoSeedMiu": {
+        "name": "IYUU自动辅种 Miu版",
         "description": "基于IYUU官方Api实现自动辅种。",
         "labels": "做种,IYUU",
         "version": "2.13",
         "icon": "IYUU.png",
-        "author": "jxxghp,CKun",
+        "author": "jxxghp,CKun,Miu",
         "level": 2,
         "history": {
             "v2.13": "开启跳过校验后需手动开启自动开始",
