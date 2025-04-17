@@ -33,7 +33,7 @@ class IYUUAutoSeedMiu(_PluginBase):
     # 插件图标
     plugin_icon = "IYUU.png"
     # 插件版本
-    plugin_version = "2.13.1"
+    plugin_version = "2.13.2"
     # 插件作者
     plugin_author = "jxxghp,CKun,Miu"
     # 作者主页
@@ -1245,13 +1245,10 @@ class IYUUAutoSeedMiu(_PluginBase):
             将mteam种子下载链接域名替换为使用API
             """
             api_url = re.sub(r'//[^/]+\.m-team', '//api.m-team', site.get('url'))
-            logger.debug(f"m-team API URL: {api_url}")
-            logger.debug(f"m-team API Key: {apikey[:4]}...{apikey[-4:]}")
-            logger.debug(f"m-team Torrent ID: {tid}")
-
+            
             res = RequestUtils(
                 headers={
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                     'User-Agent': f'{site.get("ua")}',
                     'Accept': 'application/json, text/plain, */*',
                     'x-api-key': apikey
@@ -1265,7 +1262,6 @@ class IYUUAutoSeedMiu(_PluginBase):
             
             try:
                 response_data = res.json()
-                logger.debug(f"m-team API响应：{response_data}")
                 if 'data' in response_data:
                     return response_data.get("data")
                 else:
@@ -1306,8 +1302,8 @@ class IYUUAutoSeedMiu(_PluginBase):
 
         try:
             logger.debug(f"开始处理种子下载链接，站点：{site.get('name')}，种子ID：{seed.get('torrent_id')}")
-            logger.debug(f"站点URL：{site.get('url')}")
-            logger.debug(f"基础URL：{base_url}")
+            # logger.debug(f"站点URL：{site.get('url')}")
+            # logger.debug(f"基础URL：{base_url}")
 
             if __is_mteam(site.get('url')):
                 # 调用mteam接口获取下载链接
