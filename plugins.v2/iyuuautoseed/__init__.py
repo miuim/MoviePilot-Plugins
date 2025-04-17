@@ -1044,29 +1044,30 @@ class IYUUAutoSeed(_PluginBase):
             self._error_caches.append(seed.get("info_hash"))
             self.fail += 1
             self.cached += 1
+            logger.error(f"获取种子站点信息失败：种子ID={seed.get('torrent_id')}, 站点ID={seed.get('sid')}")
             return False
         # 查询站点
         site_domain = StringUtils.get_url_domain(site_url)
         # 站点信息
         site_info = self.sites_helper.get_indexer(site_domain)
         if not site_info or not site_info.get('url'):
-            logger.debug(f"没有维护种子对应的站点：{site_url}")
+            logger.error(f"站点未维护：{site_url}, 种子ID={seed.get('torrent_id')}")
             return False
         if self._sites and site_info.get('id') not in self._sites:
-            logger.info("当前站点不在选择的辅种站点范围，跳过 ...")
+            logger.info(f"站点不在辅种范围内：{site_info.get('name')}, 种子ID={seed.get('torrent_id')}")
             return False
         self.realtotal += 1
         # 查询hash值是否已经在下载器中
         downloader_obj = service.instance
         torrent_info, _ = downloader_obj.get_torrents(ids=[seed.get("info_hash")])
         if torrent_info:
-            logger.info(f"{seed.get('info_hash')} 已在下载器中，跳过 ...")
+            logger.info(f"种子已存在：{seed.get('info_hash')}, 站点={site_info.get('name')}")
             self.exist += 1
             return False
         # 站点流控
         check, checkmsg = self.sites_helper.check(site_domain)
         if check:
-            logger.warn(checkmsg)
+            logger.warn(f"站点流控：{site_info.get('name')}, {checkmsg}, 种子ID={seed.get('torrent_id')}")
             self.fail += 1
             return False
         # 下载种子
@@ -1078,6 +1079,7 @@ class IYUUAutoSeed(_PluginBase):
             self._error_caches.append(seed.get("info_hash"))
             self.fail += 1
             self.cached += 1
+            logger.error(f"获取种子下载链接失败：站点={site_info.get('name')}, 种子ID={seed.get('torrent_id')}")
             return False
         # 强制使用Https
         if __is_special_site(torrent_url):
@@ -1097,10 +1099,11 @@ class IYUUAutoSeed(_PluginBase):
             # 加入失败缓存
             if error_msg and ('无法打开链接' in error_msg or '触发站点流控' in error_msg):
                 self._error_caches.append(seed.get("info_hash"))
+                logger.error(f"下载种子文件失败（临时性错误）：{torrent_url}, 错误信息={error_msg}")
             else:
                 # 种子不存在的情况
                 self._permanent_error_caches.append(seed.get("info_hash"))
-            logger.error(f"下载种子文件失败：{torrent_url}")
+                logger.error(f"下载种子文件失败（永久性错误）：{torrent_url}, 错误信息={error_msg}")
             return False
         # 添加下载，辅种任务默认暂停
         logger.info(f"添加下载任务：{torrent_url} ...")
@@ -1114,6 +1117,7 @@ class IYUUAutoSeed(_PluginBase):
             self.fail += 1
             # 加入失败缓存
             self._error_caches.append(seed.get("info_hash"))
+            logger.error(f"添加下载任务失败：站点={site_info.get('name')}, 种子ID={seed.get('torrent_id')}")
             return False
         else:
             self.success += 1
