@@ -4,7 +4,6 @@ import time
 from typing import Tuple, Optional
 
 from app.utils.http import RequestUtils
-from app.plugins.iyuuautoseedmiu.iyuu_helper import IyuuHelper
 
 
 class IyuuHelper(object):
