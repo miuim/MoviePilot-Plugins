@@ -27,7 +27,7 @@ from app.utils.string import StringUtils
 
 class IYUUAutoSeedMiu(_PluginBase):
     # 插件名称
-    plugin_name = "IYUU自动辅种 Miu版"
+    plugin_name = "IYUU自动辅种 Miu"
     # 插件描述
     plugin_desc = "基于IYUU官方Api实现自动辅种。"
     # 插件图标
@@ -232,7 +232,7 @@ class IYUUAutoSeedMiu(_PluginBase):
         if self.get_state():
             return [{
                 "id": "IYUUAutoSeedMiu",
-                "name": "IYUU自动辅种 Miu版服务",
+                "name": "IYUU自动辅种 Miu服务",
                 "trigger": CronTrigger.from_crontab(self._cron),
                 "func": self.auto_seed,
                 "kwargs": {}
@@ -779,7 +779,7 @@ class IYUUAutoSeedMiu(_PluginBase):
             if self.success or self.fail:
                 self.post_message(
                     mtype=NotificationType.SiteMessage,
-                    title="【IYUU自动辅种 Miu版任务完成】",
+                    title="【IYUU自动辅种 Miu任务完成】",
                     text=f"服务器返回可辅种总数：{self.total}\n"
                          f"实际可辅种数：{self.realtotal}\n"
                          f"已存在：{self.exist}\n"
@@ -1238,7 +1238,7 @@ class IYUUAutoSeedMiu(_PluginBase):
             获取mteam种子下载链接
             """
             if not apikey:
-                logger.error("m-team站点的apikey未配置")
+                logger.error("m-team 站点的apikey未配置")
                 return None
 
             """
