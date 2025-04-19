@@ -19,11 +19,11 @@ class ServiceManagerMiu(_PluginBase):
     # 插件名称
     plugin_name = "服务管理 Miu"
     # 插件描述
-    plugin_desc = "实现自定义服务管理。基于 InfinityPacer 的插件修改，新增一些服务。"
+    plugin_desc = "实现自定义服务管理。基于 InfinityPacer 的插件修改。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.2.1"
+    plugin_version = "1.2.2"
     # 插件作者
     plugin_author = "InfinityPacer,Miu"
     # 作者主页
