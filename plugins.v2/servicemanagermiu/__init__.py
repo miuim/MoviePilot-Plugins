@@ -6,6 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.chain.site import SiteChain
 from app.chain.subscribe import SubscribeChain
 from app.chain.tmdb import TmdbChain
+from app.chain.mediaserver import MediaServerChain
 from app.core.config import settings
 from app.log import logger
 from app.plugins import _PluginBase
@@ -22,7 +23,7 @@ class ServiceManagerMiu(_PluginBase):
     # 插件图标
     plugin_icon = "servicemanager.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.2.1"
     # 插件作者
     plugin_author = "InfinityPacer,Miu"
     # 作者主页
@@ -49,6 +50,8 @@ class ServiceManagerMiu(_PluginBase):
     _random_wallpager = ""
     # 订阅元数据更新（小时）
     _subscribe_tmdb = ""
+    # 媒体服务器同步（cron 表达式）
+    _mediaserver_sync = ""
 
     # endregion
 
@@ -63,6 +66,7 @@ class ServiceManagerMiu(_PluginBase):
         self._clear_cache = config.get("clear_cache")
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
+        self._mediaserver_sync = config.get("mediaserver_sync")
 
         if self._reset_and_disable:
             self._enabled = False
@@ -235,6 +239,25 @@ class ServiceManagerMiu(_PluginBase):
                                         }
                                     }
                                 ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'mediaserver_sync',
+                                            'label': '媒体服务器同步',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置媒体服务器同步的周期，如 0 4 * * * 表示每天凌晨 4:00',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -252,7 +275,7 @@ class ServiceManagerMiu(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '注意：启用本插件后，默认的系统服务将失效，仅以本插件设置为准'
+                                            'text': '注意：启用本插件后，默认的系统服务将失效，仅以本插件设置为准。留空则不启用'
                                         }
                                     }
                                 ]
@@ -379,6 +402,15 @@ class ServiceManagerMiu(_PluginBase):
                 "kwargs": {
                     "hours": subscribe_tmdb
                 }
+            })
+
+        # 媒体服务器同步服务
+        if self._mediaserver_sync:
+            services.append({
+                "id": "mediaserver_sync",
+                "name": "媒体服务器同步",
+                "trigger": CronTrigger.from_crontab(self._mediaserver_sync),
+                "func": MediaServerChain().sync
             })
 
         return services
