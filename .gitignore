@@ -161,3 +161,6 @@ cython_debug/
 
 .idea/
 .vscode/
+
+# test plugin
+plugins.v2/servicemanagermiu/requirement.txt
