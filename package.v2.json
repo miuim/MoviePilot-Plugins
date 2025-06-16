@@ -31,11 +31,12 @@
         "name": "服务管理 Miu",
         "description": "实现自定义服务管理。",
         "labels": "系统设置",
-        "version": "1.2.2",
+        "version": "1.2.3",
         "icon": "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/servicemanager.png",
         "author": "InfinityPacer,Miu",
         "level": 2,
         "history": {
+            "v1.2.3": "适配MoviePilot v2.5.2+",
             "v1.2.2": "恢复插件图标",
             "v1.2.1": "新增媒体服务器同步服务",
             "v1.2": "优化执行周期输入，需要MoviePilot v2.2.1+",

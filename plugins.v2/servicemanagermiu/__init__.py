@@ -11,9 +11,9 @@ from app.core.config import settings
 from app.log import logger
 from app.plugins import _PluginBase
 from app.scheduler import Scheduler
+from version import APP_VERSION # MP版本号 v2.5.1 v2.5.2-2
 
 lock = threading.Lock()
-
 
 class ServiceManagerMiu(_PluginBase):
     # 插件名称
@@ -23,7 +23,7 @@ class ServiceManagerMiu(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.2.2"
+    plugin_version = "1.2.3"
     # 插件作者
     plugin_author = "InfinityPacer,Miu"
     # 作者主页
@@ -67,6 +67,27 @@ class ServiceManagerMiu(_PluginBase):
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
         self._mediaserver_sync = config.get("mediaserver_sync")
+
+        if self._enabled:
+            # 问题说明：
+            # 1. 在 MoviePilot v2.5.1 版本之前，系统内置服务没有插件标识符前缀
+            # 2. 从 v2.5.1 版本开始，系统注册服务时自带有插件标识符前缀 f"{pid}_{service['id']}"
+            # 3. 这导致插件设置的系统服务定时无法覆盖系统内置服务，导致系统服务重复运行
+            #
+            # 解决方案：
+            # 1. 检查系统版本是否大于 v2.5.1
+            # 2. 如果是，则移除系统内置服务
+            # 3. 使用延迟移除机制，确保系统服务完全启动后再移除
+            # 4. 如果版本不高于 v2.5.1，则保持原有行为不变
+            if self.is_version_greater_than(APP_VERSION, "v2.5.1"):
+                # 延迟移除系统内置服务
+                # 延迟 30 秒，确保系统服务完全启动后再移除
+                timer = threading.Timer(30, self._remove_system_services)
+                timer.daemon = True  # 设置为守护线程，这样主程序退出时定时器也会退出
+                timer.start()
+                logger.info(f"系统版本 {APP_VERSION}, 将在 30 秒后移除系统内置服务")
+            else:
+                logger.info(f"系统版本 {APP_VERSION}, 不高于 v2.5.1, 无需移除系统服务")
 
         if self._reset_and_disable:
             self._enabled = False
@@ -427,3 +448,81 @@ class ServiceManagerMiu(_PluginBase):
         清理缓存
         """
         Scheduler().clear_cache()
+
+    def _remove_system_services(self):
+        """
+        移除系统内置服务
+        """
+        scheduler = Scheduler()
+        
+        # 根据插件配置决定要移除的服务
+        services_to_remove = []
+        
+        # 站点数据刷新
+        if self._sitedata_refresh:
+            services_to_remove.append("sitedata_refresh")
+        
+        # 订阅搜索补全
+        if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
+            services_to_remove.append("subscribe_search")
+        
+        # 缓存清理
+        if self._clear_cache:
+            services_to_remove.append("clear_cache")
+        
+        # 壁纸缓存
+        if self._random_wallpager:
+            services_to_remove.append("random_wallpager")
+        
+        # 订阅元数据更新
+        if self._subscribe_tmdb:
+            services_to_remove.append("subscribe_tmdb")
+        
+        # 媒体服务器同步
+        if self._mediaserver_sync:
+            services_to_remove.append("mediaserver_sync")
+        
+        # 移除服务
+        for service_id in services_to_remove:
+            try:
+                # scheduler.remove_job(service_id)
+                scheduler.remove_plugin_job(pid="None", job_id=service_id)
+                logger.info(f"已移除系统内置服务: {service_id}")
+            except Exception as e:
+                logger.error(f"移除系统内置服务 {service_id} 失败: {str(e)}")
+
+    @staticmethod
+    def is_version_greater_than(current_version: str, target_version: str) -> bool:
+        """
+        判断当前版本是否大于目标版本
+        支持格式：v2.5.1, v2.5.2-2
+        
+        版本号比较规则：
+        1. 遵循语义化版本规范 (Semantic Versioning)
+        2. 格式为：主版本号.次版本号.修订号[-构建号]
+        3. 构建号（如 -1, -2）不影响版本大小比较
+        4. 示例：
+           - v2.5.10 > v2.5.9-1
+           - v2.5.1 > v2.5.0
+           - v2.5.1-2 = v2.5.1
+        """
+        # 移除 v 前缀和构建号
+        current = current_version.lstrip('v').split('-')[0]
+        target = target_version.lstrip('v').split('-')[0]
+        
+        # 转换为数字列表
+        current_parts = [int(x) for x in current.split('.')]
+        target_parts = [int(x) for x in target.split('.')]
+        
+        # 补齐版本号长度
+        max_len = max(len(current_parts), len(target_parts))
+        current_parts.extend([0] * (max_len - len(current_parts)))
+        target_parts.extend([0] * (max_len - len(target_parts)))
+        
+        # 逐段比较
+        for i in range(max_len):
+            if current_parts[i] > target_parts[i]:
+                return True
+            elif current_parts[i] < target_parts[i]:
+                return False
+        return False
