@@ -23,7 +23,7 @@ class ServiceManagerMiu(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.2.3"
+    plugin_version = "1.2.4"
     # 插件作者
     plugin_author = "InfinityPacer,Miu"
     # 作者主页
@@ -296,7 +296,7 @@ class ServiceManagerMiu(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '注意：启用本插件后，默认的系统服务将失效，仅以本插件设置为准。留空则不启用'
+                                            'text': '注意：启用本插件后，默认的系统服务将失效，仅以本插件设置为准。留空则不启用（停用某项设置时，请先将该设置留空，执行恢复默认并停用后再启用插件，这样才能正确恢复系统内置服务）'
                                         }
                                     }
                                 ]

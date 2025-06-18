@@ -15,6 +15,7 @@
 - 功能：实现自定义服务管理
 - 原作者：[InfinityPacer](https://github.com/jxxghp/MoviePilot-Plugins)
 - 修改内容：
+  - 补充停用某项服务的操作提示
   - 增加适配 MoviePilot v2.5.2+
   - 新增媒体服务器同步服务
 
