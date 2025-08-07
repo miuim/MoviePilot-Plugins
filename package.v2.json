@@ -49,7 +49,7 @@
         "name": "SSDForum签到 Miu",
         "description": "SSDForum自动签到，支持随机延迟。",
         "labels": "签到,SSDForum",
-        "version": "1.2",
+        "version": "1.2.1",
         "icon": "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/ssdforum.png",
         "author": "imaliang,Miu",
         "level": 2,
