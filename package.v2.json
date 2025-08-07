@@ -44,5 +44,17 @@
             "v1.1": "增加订阅元数据更新服务",
             "v1.0": "增加服务管理插件，实现自定义服务管理"
         }
+    },
+    "SSDForumSigninMiu": {
+        "name": "SSDForum签到 Miu",
+        "description": "SSDForum自动签到，支持随机延迟。",
+        "labels": "签到,SSDForum",
+        "version": "1.2",
+        "icon": "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/ssdforum.png",
+        "author": "imaliang,Miu",
+        "level": 2,
+        "history": {
+            "v1.2": "原版插件版本"
+        }
     }
 }

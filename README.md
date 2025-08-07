@@ -19,6 +19,12 @@
   - 增加适配 MoviePilot v2.5.2+
   - 新增媒体服务器同步服务
 
+### 3. SSDForum签到 Miu
+- 功能：SSDForum自动签到，支持随机延迟
+- 原作者：[imaliang](https://github.com/imaliang/MoviePilot-Plugins)
+- 修改内容：
+  
+
 ## 安装说明
 
 1. 在 MoviePilot 的插件市场中添加本仓库地址
