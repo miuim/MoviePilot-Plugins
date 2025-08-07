@@ -5,6 +5,7 @@
 ## 插件列表
 
 ### 1. IYUU自动辅种 Miu
+- 目录: ./plugins.v2/iyuuautoseedmiu
 - 功能：基于IYUU官方Api实现自动辅种
 - 原作者：[jxxghp,CKun](https://github.com/jxxghp/MoviePilot-Plugins)
 - 修改内容：
@@ -12,6 +13,7 @@
   - 新增 debug 日志
 
 ### 2. 服务管理 Miu
+- 目录: ./plugins.v2/servicemanagermiu
 - 功能：实现自定义服务管理
 - 原作者：[InfinityPacer](https://github.com/jxxghp/MoviePilot-Plugins)
 - 修改内容：
@@ -20,6 +22,7 @@
   - 新增媒体服务器同步服务
 
 ### 3. SSDForum签到 Miu
+- 目录: ./plugins.v2/ssdforumsigninmiu
 - 功能：SSDForum自动签到，支持随机延迟
 - 原作者：[imaliang](https://github.com/imaliang/MoviePilot-Plugins)
 - 修改内容：
