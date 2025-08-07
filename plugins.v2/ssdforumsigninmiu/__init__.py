@@ -2,6 +2,7 @@ import random
 import re
 import time
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -25,7 +26,7 @@ class SSDForumSigninMiu(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/ssdforum.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.2.1"
     # 插件作者
     plugin_author = "imaliang,Miu"
     # 作者主页
@@ -182,23 +183,22 @@ class SSDForumSigninMiu(_PluginBase):
             totalContinuousCheckIn = 1
 
         # 随机获取心情
-        default_text = "一别之后，两地相思，只道是三四月，又谁知五六年。"
-        max_attempts = 10
-        xq = RequestUtils().get_res("https://v1.hitokoto.cn/?encode=text").text
-        attempts = 1  # 初始化计数器
-        logger.info(f"尝试想说的话-{attempts}: {xq}")
-
-        # 保证字数符合要求并且不超过最大尝试次数
-        while (len(xq) < 6 or len(xq) > 50) and attempts < max_attempts:
-            xq = RequestUtils().get_res("https://v1.hitokoto.cn/?encode=text").text
-            attempts += 1
-            logger.info(f"尝试想说的话-{attempts}: {xq}")
-
-        # 如果循环结束后仍不符合要求，使用默认值
-        if len(xq) < 6 or len(xq) > 50:
-            xq = default_text
-
-        logger.info("最终想说的话：" + xq)
+        mood_list = [
+            "早上好啊",
+            "早上好哦",
+            "早早早上好",
+            "新的一天签到",
+            "签到了早上好",
+            "good morning",
+            "good morning~",
+            "good morning~~",
+            "morning~~~",
+            "morning~~",
+            "坚持签到",
+            "坚持签到早上好"
+        ]
+        xq = random.choice(mood_list)
+        logger.info("随机选择的心情：" + xq)
 
         # 获取签到链接,并签到
         qd_url = 'plugin.php?id=dsu_paulsign:sign&operation=qiandao&infloat=1'
@@ -212,8 +212,14 @@ class SSDForumSigninMiu(_PluginBase):
         }
 
         # 开始签到
-        res = RequestUtils(headers=headers).post_res(
-            url=f"https://{_url}/{qd_url}", data=qd_data)
+        # 为POST请求添加正确的Content-Type
+        post_headers = headers.copy()
+        post_headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
+        
+        # 手动编码POST数据以确保中文字符正确处理
+        encoded_data = urlencode(qd_data, encoding='utf-8')
+        res = RequestUtils(headers=post_headers).post_res(
+            url=f"https://{_url}/{qd_url}", data=encoded_data)
         if not res or res.status_code != 200:
             self.__send_fail_msg("请求签到接口失败-status_code=" + res.status_code)
             return
