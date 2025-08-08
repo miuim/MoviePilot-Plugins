@@ -26,11 +26,11 @@ class SSDForumSigninMiu(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/ssdforum.png"
     # 插件版本
-    plugin_version = "1.2.1"
+    plugin_version = "1.2.2"
     # 插件作者
     plugin_author = "imaliang,Miu"
     # 作者主页
-    author_url = "https://github.com/imaliang"
+    author_url = "https://github.com/miuim"
     # 插件配置项ID前缀
     plugin_config_prefix = "ssdforumsigninmiu_"
     # 加载顺序
@@ -182,20 +182,22 @@ class SSDForumSigninMiu(_PluginBase):
         else:
             totalContinuousCheckIn = 1
 
-        # 随机获取心情
+        # 随机获取心情 - 使用英文避免编码问题
         mood_list = [
-            "早上好啊",
-            "早上好哦",
-            "早早早上好",
-            "新的一天签到",
-            "签到了早上好",
-            "good morning",
+            "morning~",
+            "morning~~",
+            "Morning~",
+            "Morning~~",
+            "Hello morning",
+            "hello morning",
+            "hello morning~",
+            "Hello morning~",
+            "hello morning~~",
+            "Hello morning~~",
             "good morning~",
             "good morning~~",
-            "morning~~~",
-            "morning~~",
-            "坚持签到",
-            "坚持签到早上好"
+            "good morning",
+            "lalalala"
         ]
         xq = random.choice(mood_list)
         logger.info("随机选择的心情：" + xq)
@@ -212,14 +214,8 @@ class SSDForumSigninMiu(_PluginBase):
         }
 
         # 开始签到
-        # 为POST请求添加正确的Content-Type
-        post_headers = headers.copy()
-        post_headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        
-        # 手动编码POST数据以确保中文字符正确处理
-        encoded_data = urlencode(qd_data, encoding='utf-8')
-        res = RequestUtils(headers=post_headers).post_res(
-            url=f"https://{_url}/{qd_url}", data=encoded_data)
+        res = RequestUtils(headers=headers).post_res(
+            url=f"https://{_url}/{qd_url}", data=qd_data)
         if not res or res.status_code != 200:
             self.__send_fail_msg("请求签到接口失败-status_code=" + res.status_code)
             return
