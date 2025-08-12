@@ -22,11 +22,11 @@ class SSDForumSigninMiu(_PluginBase):
     # 插件名称
     plugin_name = "SSDForum签到 Miu"
     # 插件描述
-    plugin_desc = "SSDForum自动签到，支持随机延迟。"
+    plugin_desc = "SSDForum自动签到，支持随机延迟。移除远程获取随机心情。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/ssdforum.png"
     # 插件版本
-    plugin_version = "1.2.2"
+    plugin_version = "1.2.3"
     # 插件作者
     plugin_author = "imaliang,Miu"
     # 作者主页
@@ -197,7 +197,7 @@ class SSDForumSigninMiu(_PluginBase):
             "good morning~",
             "good morning~~",
             "good morning",
-            "lalalala"
+            "morning lalalala"
         ]
         xq = random.choice(mood_list)
         logger.info("随机选择的心情：" + xq)
