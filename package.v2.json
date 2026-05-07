@@ -59,5 +59,18 @@
             "v1.2.1": "优化心情随机选择，移除远程获取随机心情",
             "v1.2": "原版插件版本"
         }
+    },
+    "ClashRuleProviderMiu": {
+        "name": "Clash Rule Provider Miu",
+        "description": "随时为Clash添加一些额外的规则。基于 wumode 的插件修改。",
+        "labels": "Clash,Rule Provider",
+        "version": "2.1.5.1",
+        "icon": "Mihomo_Meta_A.png",
+        "author": "wumode,Miu",
+        "level": 2,
+        "history": {
+            "v2.1.5.1": "基于 wumode 的插件修改, 指定 starlette 版本",
+            "v2.1.5": "原版插件版本"
+        }
     }
 }
