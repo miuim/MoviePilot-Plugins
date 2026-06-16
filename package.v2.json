@@ -74,5 +74,18 @@
             "v2.1.5.1": "基于 wumode 的插件修改, 指定 starlette 版本",
             "v2.1.5": "原版插件版本"
         }
+    },
+    "CnlangSigninMiu": {
+        "name": "国语视界签到 Miu",
+        "description": "国语视界论坛自动签到，支持随机延迟。",
+        "labels": "签到,国语视界",
+        "version": "1.2.1",
+        "icon": "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/cnlang.png",
+        "author": "imaliang,Miu",
+        "level": 2,
+        "history": {
+            "v1.2.1": "移除远程获取随机心情, 修复立即运行一次方法调用错误问题",
+            "v1.2": "原版插件版本"
+        }
     }
 }
