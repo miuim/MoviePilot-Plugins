@@ -23,7 +23,7 @@ class ServiceManagerMiu(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/miuim/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.2.4"
+    plugin_version = "1.2.6"
     # 插件作者
     plugin_author = "InfinityPacer,Miu"
     # 作者主页
@@ -274,7 +274,7 @@ class ServiceManagerMiu(_PluginBase):
                                             'model': 'mediaserver_sync',
                                             'label': '媒体服务器同步',
                                             'placeholder': '5位cron表达式',
-                                            'hint': '设置媒体服务器同步的周期，如 0 4 * * * 表示每天凌晨 4:00',
+                                            'hint': '设置「所有」媒体服务器同步的周期，如 0 4 * * * 表示每天凌晨 4:00',
                                             'persistent-hint': True
                                         }
                                     }
@@ -296,7 +296,7 @@ class ServiceManagerMiu(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '注意：启用本插件后，默认的系统服务将失效，仅以本插件设置为准。留空则不启用（停用某项设置时，请先将该设置留空，执行恢复默认并停用后再启用插件，这样才能正确恢复系统内置服务）'
+                                            'text': '注意：媒体服务器同步为附加模式，插件不会移除系统内置同步，CRON 将在系统同步之外额外执行；若仅需按插件的 CRON 同步，请将媒体服务器的自动同步间隔设为 0（留空会回退默认 6 小时）。其余服务（站点数据刷新、订阅搜索补全等）为覆盖模式，启用后以插件设置为准；停用时请先将对应项留空并执行"恢复默认并停用"，即可恢复系统内置服务'
                                         }
                                     }
                                 ]
@@ -479,8 +479,12 @@ class ServiceManagerMiu(_PluginBase):
             services_to_remove.append("subscribe_tmdb")
         
         # 媒体服务器同步
-        if self._mediaserver_sync:
-            services_to_remove.append("mediaserver_sync")
+		# 采用附加模式：不加入移除列表，不覆盖、不移除系统内置同步服务。
+        # 新版系统按服务器拆分内置任务（mediaserver_sync_xxx），且移除后无法自动恢复；
+        # 插件 CRON 仅在系统同步之外附加执行。若仅需按本插件的 CRON 同步，
+        # 请将媒体服务器的自动同步间隔设为 0（留空会回退全局默认 6 小时）。
+        #if self._mediaserver_sync:
+        #    services_to_remove.append("mediaserver_sync")
         
         # 移除服务
         for service_id in services_to_remove:
