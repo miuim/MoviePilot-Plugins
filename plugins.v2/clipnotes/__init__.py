@@ -26,6 +26,7 @@ from .models import (
     NoteRecord,
     NoteStatus,
     PLATFORM_LABELS,
+    STATUS_LABELS,
     SubmitRequest,
     now_text,
 )
@@ -59,6 +60,9 @@ INPUT_CLEANUP_INTERVAL = 5
 # 列表命令展示的最大条数
 LIST_LIMIT = 10
 
+# 详情页历史记录每页条数
+PAGE_SIZE = 10
+
 # 同步协议版本，客户端应按不透明标识处理
 SYNC_PROTOCOL_VERSION = "clipnotes-sync/1"
 
@@ -67,6 +71,16 @@ ASCII_COMMAND_ORIGINS = {"telegram"}
 
 # 机器人命令名规范：a-z0-9_，长度 1~32
 BOT_COMMAND_PATTERN = re.compile(r"^[a-z0-9_]{1,32}$")
+
+# 状态标识到详情页展示颜色的映射
+STATUS_COLORS: Dict[str, str] = {
+    NoteStatus.RECEIVED.value: "grey",
+    NoteStatus.PARSING.value: "info",
+    NoteStatus.AI_PENDING.value: "warning",
+    NoteStatus.READY.value: "primary",
+    NoteStatus.SYNCED.value: "success",
+    NoteStatus.FAILED.value: "error",
+}
 
 # 企业微信自定义菜单限制：一级菜单最多 3 个，每个一级菜单最多 5 个子项
 WECHAT_MENU_MAX_CATEGORIES = 3
@@ -83,7 +97,7 @@ class ClipNotes(_PluginBase):
     # 插件图标
     plugin_icon = "clipnotes.png"
     # 插件版本
-    plugin_version = "1.1.0"
+    plugin_version = "1.1.4"
     # 插件标签
     plugin_label = "知识管理"
     # 插件作者
@@ -105,6 +119,8 @@ class ClipNotes(_PluginBase):
     _running: bool = False
     # 已开启的链接输入窗口：key -> (截止时间, 用户, 渠道, 来源)
     _pending_inputs: Dict[str, Tuple[float, Any, Any, Any]] = {}
+    # 详情页历史记录当前页码（仅内存态，重载后回到第 1 页）
+    _page_index: int = 1
 
     def init_plugin(self, config: dict = None) -> None:
         """根据插件配置初始化运行状态。
@@ -117,6 +133,7 @@ class ClipNotes(_PluginBase):
         self._notify_ready = bool(self._config.get("notify_ready", True))
         self._running = False
         self._pending_inputs = {}
+        self._page_index = 1
         if self._enabled:
             logger.info("ClipNotes 插件已启用")
 
@@ -205,6 +222,14 @@ class ClipNotes(_PluginBase):
                 "auth": "apikey",
                 "summary": "统计信息",
                 "description": "返回各状态笔记数量与运行参数概况。",
+            },
+            {
+                "path": "/set_page",
+                "endpoint": self.api_set_page,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "切换详情页页码",
+                "description": "详情页分页控件调用，切换历史记录页码后前端会重新拉取页面数据。",
             },
         ]
 
@@ -521,51 +546,283 @@ class ClipNotes(_PluginBase):
             return None
         storage = self._storage()
         stats = storage.stats()
-        summary = (
-            f"共 {stats.get('total', 0)} 条笔记："
-            f"待同步 {stats.get('by_status', {}).get(NoteStatus.READY.value, 0)}，"
-            f"处理中 {stats.get('by_status', {}).get(NoteStatus.RECEIVED.value, 0) + stats.get('by_status', {}).get(NoteStatus.PARSING.value, 0) + stats.get('by_status', {}).get(NoteStatus.AI_PENDING.value, 0)}，"
-            f"已同步 {stats.get('by_status', {}).get(NoteStatus.SYNCED.value, 0)}，"
-            f"失败 {stats.get('by_status', {}).get(NoteStatus.FAILED.value, 0)}"
-        )
-        items, _ = storage.list_notes(count=LIST_LIMIT)
-        list_items = []
-        for item in items:
-            status_label = NoteStatus(str(item.get("status"))).label if item.get("status") in {
-                status.value for status in NoteStatus
-            } else str(item.get("status"))
-            platform_label = PLATFORM_LABELS.get(str(item.get("platform")), str(item.get("platform")))
-            list_items.append(
+        total = int(stats.get("total") or 0)
+        total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+        self._page_index = min(max(1, int(self._page_index or 1)), total_pages)
+        items, _ = storage.list_notes(page=self._page_index, count=PAGE_SIZE)
+        rows: List[dict] = []
+        for index, item in enumerate(items):
+            if index:
+                rows.append({"component": "VDivider", "props": {"class": "my-2"}})
+            rows.append(self._build_note_row(item))
+        if not rows:
+            rows.append(
                 {
-                    "component": "VListItem",
-                    "props": {
-                        "title": str(item.get("title") or item.get("source_url") or ""),
-                        "subtitle": f"[{status_label}] {platform_label} · {item.get('created_at', '')} · id={item.get('content_id', '')}",
-                    },
+                    "component": "div",
+                    "props": {"class": "text-caption text-medium-emphasis text-center py-4"},
+                    "text": "暂无笔记记录，发送 /note <链接> 开始收录",
                 }
             )
+        else:
+            pagination = self._build_pagination(self._page_index, total_pages, total)
+            if pagination:
+                rows.append({"component": "VDivider", "props": {"class": "my-2"}})
+                rows.append(pagination)
         return [
+            self._build_overview_card(stats),
             {
                 "component": "VCard",
-                "props": {"variant": "tonal", "class": "mb-3"},
+                "props": {"variant": "outlined", "class": "mt-3"},
                 "content": [
                     {
                         "component": "VCardText",
-                        "props": {"text": summary},
-                    }
-                ],
-            },
-            {
-                "component": "VList",
-                "props": {"density": "compact"},
-                "content": list_items or [
-                    {
-                        "component": "VListItem",
-                        "props": {"title": "暂无笔记记录", "subtitle": "发送 /笔记 <链接> 开始收录"},
+                        "props": {"class": "py-2"},
+                        "content": [
+                            {
+                                "component": "div",
+                                "props": {"class": "text-subtitle-2 mb-2"},
+                                "text": f"历史记录（共 {total} 条）",
+                            },
+                            *rows,
+                        ],
                     }
                 ],
             },
         ]
+
+    def _build_overview_card(self, stats: Dict[str, Any]) -> dict:
+        """构建笔记概览卡片。
+
+        :param stats: 存储层返回的统计数据
+        :return: VCard 组件配置
+        """
+        by_status = stats.get("by_status") or {}
+        processing = sum(
+            int(by_status.get(status.value, 0) or 0)
+            for status in (NoteStatus.RECEIVED, NoteStatus.PARSING, NoteStatus.AI_PENDING)
+        )
+        return {
+            "component": "VCard",
+            "props": {"variant": "tonal", "class": "mb-3"},
+            "content": [
+                {
+                    "component": "VCardText",
+                    "props": {"class": "py-3"},
+                    "content": [
+                        {
+                            "component": "div",
+                            "props": {"class": "text-subtitle-2 mb-2"},
+                            "text": f"笔记总览 · 最近更新 {stats.get('latest_created_at') or '暂无'}",
+                        },
+                        {
+                            "component": "VRow",
+                            "props": {"class": "mx-0"},
+                            "content": [
+                                self._stat_block("全部", stats.get("total", 0), "primary"),
+                                self._stat_block("待同步", by_status.get(NoteStatus.READY.value, 0), "info"),
+                                self._stat_block("处理中", processing, "warning"),
+                                self._stat_block("已同步", by_status.get(NoteStatus.SYNCED.value, 0), "success"),
+                                self._stat_block("失败", by_status.get(NoteStatus.FAILED.value, 0), "error"),
+                            ],
+                        },
+                    ],
+                }
+            ],
+        }
+
+    @staticmethod
+    def _stat_block(label: str, value: Any, color: str) -> dict:
+        """构建单个统计块组件配置。
+
+        :param label: 统计项名称
+        :param value: 统计数值
+        :param color: 数值展示颜色（Vuetify 颜色名）
+        :return: VCol 组件配置
+        """
+        return {
+            "component": "VCol",
+            "props": {"cols": 6, "sm": 2, "class": "pa-1"},
+            "content": [
+                {
+                    "component": "div",
+                    "props": {"class": f"text-h6 text-{color}"},
+                    "text": str(value),
+                },
+                {
+                    "component": "div",
+                    "props": {"class": "text-caption text-medium-emphasis"},
+                    "text": label,
+                },
+            ],
+        }
+
+    def _build_note_row(self, item: Dict[str, Any]) -> dict:
+        """构建单条笔记记录的列表行。
+
+        左侧为状态标签，中间为标题与平台/分类/时间等次要信息，右侧为原文入口，
+        失败记录额外展示一行失败原因。
+
+        :param item: 笔记摘要字典
+        :return: VListItem 组件配置
+        """
+        status_value = str(item.get("status") or "")
+        status_label = STATUS_LABELS.get(status_value, status_value or "未知")
+        platform_value = str(item.get("platform") or "")
+        platform_label = PLATFORM_LABELS.get(platform_value, platform_value or "未知")
+        source_url = str(item.get("source_url") or "")
+        error = str(item.get("error") or "").strip()
+
+        metas = [str(item.get("created_at") or "-"), platform_label]
+        category = str(item.get("category") or "").strip()
+        if category:
+            metas.insert(2, category)
+        tags = [str(tag).strip() for tag in (item.get("tags") or []) if str(tag).strip()][:3]
+        if tags:
+            metas.append(" ".join(f"#{tag}" for tag in tags))
+
+        texts: List[dict] = [
+            {
+                "component": "div",
+                "props": {
+                    "class": "text-body-2 font-weight-medium",
+                    "style": "display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;",
+                },
+                "text": str(item.get("title") or source_url or "（无标题）"),
+            },
+            {
+                "component": "div",
+                "props": {"class": "text-caption text-medium-emphasis"},
+                "text": " · ".join(metas),
+            },
+        ]
+        if error:
+            texts.append(
+                {
+                    "component": "div",
+                    "props": {
+                        "class": "text-caption text-error",
+                        "style": "display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;",
+                    },
+                    "text": error,
+                }
+            )
+
+        columns: List[dict] = [
+            {
+                "component": "VCol",
+                "props": {"cols": "auto", "class": "pa-1"},
+                "content": [
+                    {
+                        "component": "VChip",
+                        "props": {
+                            "color": STATUS_COLORS.get(status_value, "grey"),
+                            "size": "x-small",
+                            "variant": "flat",
+                            "label": True,
+                        },
+                        "text": status_label,
+                    }
+                ],
+            },
+            {
+                "component": "VCol",
+                "props": {"class": "pa-1"},
+                "content": texts,
+            },
+        ]
+        if is_valid_http_url(source_url):
+            columns.append(
+                {
+                    "component": "VCol",
+                    "props": {"cols": "auto", "class": "pa-1"},
+                    "content": [
+                        {
+                            "component": "a",
+                            "props": {
+                                "href": source_url,
+                                "target": "_blank",
+                                "class": "text-caption text-decoration-underline",
+                            },
+                            "text": "原文",
+                        }
+                    ],
+                }
+            )
+        return {
+            "component": "VRow",
+            "props": {"class": "mx-0 align-center flex-nowrap w-100 py-1"},
+            "content": columns,
+        }
+
+    def _build_pagination(self, current: int, total_pages: int, total: int) -> Optional[dict]:
+        """构建历史记录分页控件。
+
+        :param current: 当前页码
+        :param total_pages: 总页数
+        :param total: 记录总数
+        :return: 分页组件配置，只有一页时返回 None
+        """
+        if total_pages <= 1:
+            return None
+        window_start = max(1, min(current - 2, total_pages - 4))
+        window_end = min(total_pages, window_start + 4)
+        buttons: List[dict] = [
+            self._page_button("上一页", current - 1, enabled=current > 1)
+        ]
+        for number in range(window_start, window_end + 1):
+            buttons.append(
+                self._page_button(str(number), number, active=number == current)
+            )
+        buttons.append(
+            self._page_button("下一页", current + 1, enabled=current < total_pages)
+        )
+        return {
+            "component": "div",
+            "props": {"class": "d-flex flex-wrap align-center ga-2 pt-1 pb-4"},
+            "content": [
+                {
+                    "component": "div",
+                    "props": {"class": "text-caption text-medium-emphasis"},
+                    "text": f"共 {total} 条 · 第 {current} / {total_pages} 页",
+                },
+                {
+                    "component": "div",
+                    "props": {"class": "d-flex flex-wrap align-center ga-1"},
+                    "content": buttons,
+                },
+            ],
+        }
+
+    @staticmethod
+    def _page_button(text: str, page: int, active: bool = False, enabled: bool = True) -> dict:
+        """构建单个分页按钮。
+
+        :param text: 按钮文本
+        :param page: 目标页码
+        :param active: 是否为当前页
+        :param enabled: 是否可点击
+        :return: VBtn 组件配置
+        """
+        props: Dict[str, Any] = {
+            "size": "small",
+            "variant": "flat" if active else "text",
+            "density": "comfortable",
+            "class": "text-none px-2",
+            "disabled": not enabled,
+        }
+        if active:
+            props["color"] = "primary"
+        return {
+            "component": "VBtn",
+            "props": props,
+            "text": text,
+            "events": {
+                "click": {
+                    "api": f"plugin/ClipNotes/set_page?page={page}",
+                    "method": "post",
+                }
+            },
+        }
 
     def get_service(self) -> List[Dict[str, Any]]:
         """注册插件后台服务。
@@ -1451,3 +1708,15 @@ class ClipNotes(_PluginBase):
                 "third_party_api_configured": bool(options.third_party_api),
             },
         }
+
+    def api_set_page(self, page: int = 1) -> Dict[str, Any]:
+        """切换详情页历史记录页码，供页面分页控件调用。
+
+        :param page: 目标页码
+        :return: 统一响应结构
+        """
+        try:
+            self._page_index = max(1, int(page))
+        except (TypeError, ValueError):
+            self._page_index = 1
+        return {"code": 0, "msg": f"已切换到第 {self._page_index} 页"}
