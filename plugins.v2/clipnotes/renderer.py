@@ -76,7 +76,7 @@ def render_markdown(record: NoteRecord, options: Optional[ClipNotesOptions] = No
         lines.append("")
 
     images = [str(image) for image in (item.get("images") or []) if str(image).strip()]
-    if images and len(images) > 3:
+    if images:
         lines.append("## 图片")
         lines.append("")
         for image in images:
