@@ -101,7 +101,7 @@ class ClipNotes(_PluginBase):
     # 插件标签
     plugin_label = "知识管理"
     # 插件作者
-    plugin_author = "local"
+    plugin_author = "miu"
     # 作者主页
     author_url = ""
     # 插件配置项ID前缀
