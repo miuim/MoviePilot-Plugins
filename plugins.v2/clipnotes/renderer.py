@@ -76,7 +76,7 @@ def render_markdown(record: NoteRecord, options: Optional[ClipNotesOptions] = No
         lines.append("")
 
     images = [str(image) for image in (item.get("images") or []) if str(image).strip()]
-    if images:
+    if images and _keeps_standalone_image_gallery(record.platform):
         lines.append("## 图片")
         lines.append("")
         for image in images:
@@ -84,6 +84,11 @@ def render_markdown(record: NoteRecord, options: Optional[ClipNotesOptions] = No
         lines.append("")
 
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip() + "\n"
+
+
+def _keeps_standalone_image_gallery(platform: str) -> bool:
+    """判断平台是否需要在正文末尾单独展示图片列表。"""
+    return platform in {"xiaohongshu", "douyin"}
 
 
 def build_filename(record: NoteRecord) -> str:
