@@ -1188,9 +1188,17 @@ class ClipNotes(_PluginBase):
         """
         if not is_valid_http_url(url):
             return f"链接无效：{url}"
-        # 短链先解析真实地址，保证平台识别与去重正确
-        target = resolve_short_url(url) if is_short_link(url) else url
-        result = self._register_note(target=target, channel=channel, source=source, user=user)
+        source_url = normalize_url(url)
+        # 短链只用于生成稳定的去重标识，不写入笔记记录；后台处理时再解析，
+        # 避免把可能过期的重定向地址保存成笔记原文链接。
+        target = resolve_short_url(source_url) if is_short_link(source_url) else source_url
+        result = self._register_note(
+            target=target,
+            source_url=source_url,
+            channel=channel,
+            source=source,
+            user=user,
+        )
         if result.get("invalid"):
             return f"链接无效：{url}"
         if result.get("exists"):
@@ -1211,6 +1219,7 @@ class ClipNotes(_PluginBase):
     def _register_note(
         self,
         target: str,
+        source_url: Optional[str] = None,
         channel: Any = None,
         source: Any = None,
         user: Any = None,
@@ -1223,10 +1232,11 @@ class ClipNotes(_PluginBase):
         :param user: 用户标识
         :return: 处理结果
         """
-        normalized = normalize_url(target)
-        if not is_valid_http_url(normalized):
+        normalized_target = normalize_url(target)
+        normalized_source = normalize_url(source_url or target)
+        if not is_valid_http_url(normalized_target) or not is_valid_http_url(normalized_source):
             return {"invalid": True}
-        content_id = url_hash(normalized)
+        content_id = url_hash(normalized_target)
         storage = self._storage()
         existing = storage.get(content_id)
         if existing:
@@ -1243,8 +1253,8 @@ class ClipNotes(_PluginBase):
             }
         record = NoteRecord.new_from_url(
             content_id=content_id,
-            source_url=normalized,
-            platform=detect_platform(normalized),
+            source_url=normalized_source,
+            platform=detect_platform(normalized_target),
         )
         record.submit_user = str(user or "")
         record.submit_channel = str(getattr(channel, "value", channel) or "")
@@ -1567,11 +1577,14 @@ class ClipNotes(_PluginBase):
         url = (payload.url or "").strip()
         if not is_valid_http_url(url):
             raise HTTPException(status_code=400, detail="链接无效")
-        # 短链解析会阻塞请求，放到线程池执行
+        source_url = normalize_url(url)
+        # 短链解析只用于去重；记录中保留用户提交的原始分享链接。
         target = (
-            await asyncio.to_thread(resolve_short_url, url) if is_short_link(url) else url
+            await asyncio.to_thread(resolve_short_url, source_url)
+            if is_short_link(source_url)
+            else source_url
         )
-        result = self._register_note(target=target)
+        result = self._register_note(target=target, source_url=source_url)
         if result.get("invalid"):
             raise HTTPException(status_code=400, detail="链接无效")
         return {"success": True, **result}

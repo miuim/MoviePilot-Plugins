@@ -19,7 +19,7 @@ class XiaohongshuParser(BaseParser):
     """小红书笔记解析器。"""
 
     platform = Platform.XIAOHONGSHU.value
-    domains = ("xiaohongshu.com", "xhslink.com")
+    domains = ("xiaohongshu.com", "xhslink.com", "xhslink.cn")
     site_name = "小红书"
 
     async def parse(self, url: str) -> ContentItem:

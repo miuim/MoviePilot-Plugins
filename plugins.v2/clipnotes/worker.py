@@ -1,6 +1,7 @@
 """后台处理流程：抓取 → 图片落盘 → AI 整理 → Markdown 渲染。"""
 from __future__ import annotations
 
+import asyncio
 import traceback
 from typing import Callable, List, Optional
 
@@ -14,7 +15,7 @@ from .parsers import build_generic_parser, build_parsers, select_parser
 from .parsers.base import DEFAULT_USER_AGENT, ParseError
 from .renderer import render_markdown
 from .storage import AssetStore, NoteStorage
-from .urlutils import asset_key_url, content_hash, resolve_proxy
+from .urlutils import asset_key_url, content_hash, is_short_link, resolve_proxy, resolve_short_url
 
 # 单条笔记最多落盘的图片数量
 MAX_ASSETS = 20
@@ -98,9 +99,14 @@ class NoteWorker:
         :param record: 笔记记录
         :return: 标准化内容，失败时返回 None
         """
-        parser = select_parser(record.source_url, self.parsers) or self.generic_parser
+        # 记录保留原始分享链接；短链在实际抓取时再解析，避免使用提交阶段
+        # 生成且可能已经过期的临时地址。
+        parse_url = record.source_url
+        if is_short_link(parse_url):
+            parse_url = await asyncio.to_thread(resolve_short_url, parse_url)
+        parser = select_parser(parse_url, self.parsers) or self.generic_parser
         try:
-            return await parser.parse(record.source_url)
+            return await parser.parse(parse_url)
         except ParseError as err:
             self._fail(record, str(err))
             return None
