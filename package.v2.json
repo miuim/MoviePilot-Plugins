@@ -93,7 +93,7 @@
     "name": "ClipNotes",
     "description": "收录微信、小红书、抖音链接，抓取正文并经 AI 整理为结构化 Markdown，提供增量同步 API。",
     "labels": "知识管理",
-    "version": "1.1.7",
+    "version": "1.1.8",
     "icon": "clipnotes.png",
     "author": "Miu",
     "level": 1,
