@@ -177,6 +177,7 @@ class NoteRecord:
     content_id: str
     source_url: str
     platform: str
+    fetch_url: str = ""
     status: str = NoteStatus.RECEIVED.value
     created_at: str = ""
     updated_at: str = ""
@@ -228,6 +229,7 @@ class NoteRecord:
             "content_id": self.content_id,
             "source_url": self.source_url,
             "platform": self.platform,
+            "fetch_url": self.fetch_url,
             "status": self.status,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -275,6 +277,7 @@ class NoteRecord:
             content_id=str(data.get("content_id") or ""),
             source_url=str(data.get("source_url") or ""),
             platform=str(data.get("platform") or Platform.GENERIC.value),
+            fetch_url=str(data.get("fetch_url") or ""),
             status=str(data.get("status") or NoteStatus.RECEIVED.value),
             created_at=str(data.get("created_at") or ""),
             updated_at=str(data.get("updated_at") or ""),

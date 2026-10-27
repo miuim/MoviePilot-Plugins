@@ -104,6 +104,7 @@ class NoteWorker:
         parse_url = record.source_url
         if is_short_link(parse_url):
             parse_url = await asyncio.to_thread(resolve_short_url, parse_url)
+        record.fetch_url = parse_url
         parser = select_parser(parse_url, self.parsers) or self.generic_parser
         try:
             return await parser.parse(parse_url)
@@ -162,7 +163,10 @@ class NoteWorker:
                 )
                 continue
             try:
-                data, content_type = await self._fetch_asset(url, record.source_url)
+                data, content_type = await self._fetch_asset(
+                    url,
+                    record.fetch_url or record.source_url,
+                )
             except Exception as err:
                 assets.append(
                     AssetRef(
