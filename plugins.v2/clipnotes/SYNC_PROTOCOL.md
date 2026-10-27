@@ -122,7 +122,8 @@ loop:
       "content_hash": "a1b2c3d4e5f60718",
       "markdown_size": 2536,
       "assets_count": 6,
-      "error": ""
+      "error": "",
+      "synced_path": "知识/Obsidian新手入门.md"
     }
   ],
   "deleted": [
@@ -138,6 +139,7 @@ loop:
 - `content_hash`：Markdown 内容的 SHA-256 前 16 位，作为文件级 ETag。
 - `revision`：服务端单调递增版本号，仅用于调试比对，客户端**不要**用它排序。
 - `server_time`：服务端当前时间，客户端不要依赖本地时钟。
+- `synced_path`：客户端最后一次成功 ack 的 Vault 相对路径；未同步或旧数据为空。
 
 ### 响应（浏览模式）
 
@@ -156,6 +158,7 @@ loop:
 | `meta.author` / `meta.publish_time` / `meta.video` / `meta.images` / `meta.extra` | 原始抓取信息 |
 | `assets[]` | 资源清单，每项含 `hash`、`source_url`、`filename`、`downloaded`、`size`、`api_path` |
 | `synced_at` | 上次 ack 时间 |
+| `synced_path` | 客户端最后一次成功 ack 的 Vault 相对路径；未同步或旧数据为空 |
 
 **重要**：Markdown 正文里的图片引用仍是原始 CDN 地址（会过期）。客户端必须用 `assets[].hash` 对应的本地文件替换这些引用；`assets[].source_url` 可用于匹配替换位置（注意小红书 CDN 地址每次抓取都会变化，匹配时应以路径末段的内容标识为准）。
 
@@ -171,6 +174,7 @@ loop:
 
 - 不带 `content_hash`：直接标记为 `synced`（并发写 `synced_at`）。
 - 带 `content_hash` 且与服务端不一致：返回 `stale: true`，**不修改任何状态**，客户端应重新拉取该条。这是防止"同步了旧版本却标记完成"的保护。
+- `note` 是客户端 Vault 内的相对路径，服务端保存并在后续列表、详情和 ack 响应中返回为 `synced_path`；绝对路径和路径穿越会被拒绝。
 - `status` 可传 `ready` 用于把条目退回待同步队列（例如本地文件被误删）。
 
 响应：
@@ -178,7 +182,8 @@ loop:
 ```json
 { "success": true, "stale": false, "content_id": "9d2ea243832fb7e2",
   "status": "synced", "synced_at": "2026-10-07 02:42:10",
-  "revision": 38, "content_hash": "a1b2c3d4e5f60718" }
+  "revision": 38, "content_hash": "a1b2c3d4e5f60718",
+  "synced_path": "知识/Obsidian新手入门.md" }
 ```
 
 **幂等性**：重复 ack 同一条是安全的；若条目已是 `synced`，再次 ack 只会刷新 `synced_at`。
@@ -203,7 +208,9 @@ loop:
 2. **状态流转会产生新的 `updated_at`**：客户端若只按时间比较而不比较 `content_hash`，会做无谓的重复下载。
 3. **`assets` 只保留正文图片**（每篇上限 20 张），视频只记录地址不落盘。
 4. **`xsec_token` 会过期**：小红书笔记入库后长期保存，重新解析旧链接可能失败；如需重跑建议重新提交分享链接（`content_id` 相同，不会产生新记录）。
-5. 协议为**只读 + ack**：客户端不接受反向写入内容，Markdown 由服务端生成。
+5. 协议为**只读 + ack**：客户端不接受反向写入内容，Markdown 由服务端生成；`synced_path` 仅用于定位客户端已有文件。
+
+6. retry 会保留 `synced_path`。客户端优先检查该路径及文件内的 `content_id`，找到后更新原文件，默认不因 AI 标题变化而重命名；找不到时回退到标题生成的目标路径。
 
 ---
 

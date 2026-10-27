@@ -63,6 +63,9 @@ LIST_LIMIT = 10
 # 详情页历史记录每页条数
 PAGE_SIZE = 10
 
+# 客户端回传的路径必须是 Vault 内的相对路径
+SYNCED_PATH_MAX_LENGTH = 1024
+
 # 同步协议版本，客户端应按不透明标识处理
 SYNC_PROTOCOL_VERSION = "clipnotes-sync/1"
 
@@ -71,6 +74,19 @@ ASCII_COMMAND_ORIGINS = {"telegram"}
 
 # 机器人命令名规范：a-z0-9_，长度 1~32
 BOT_COMMAND_PATTERN = re.compile(r"^[a-z0-9_]{1,32}$")
+
+
+def normalize_synced_path(value: Optional[str]) -> str:
+    """规范化并校验客户端提交的 Vault 相对路径。"""
+    path = str(value or "").strip().replace("\\", "/")
+    if not path or len(path) > SYNCED_PATH_MAX_LENGTH:
+        return ""
+    if path.startswith("/") or re.match(r"^[A-Za-z]:/", path):
+        return ""
+    parts = [part.strip() for part in path.split("/") if part.strip()]
+    if not parts or any(part in {".", ".."} for part in parts):
+        return ""
+    return "/".join(parts)
 
 # 状态标识到详情页展示颜色的映射
 STATUS_COLORS: Dict[str, str] = {
@@ -1566,6 +1582,7 @@ class ClipNotes(_PluginBase):
             "markdown_size": int(summary.get("markdown_size") or 0),
             "assets_count": int(summary.get("assets_count") or 0),
             "error": str(summary.get("error") or ""),
+            "synced_path": str(summary.get("synced_path") or ""),
         }
 
     async def api_submit_note(self, payload: SubmitRequest) -> Dict[str, Any]:
@@ -1642,6 +1659,7 @@ class ClipNotes(_PluginBase):
                 "created_at": record.created_at,
                 "updated_at": record.updated_at,
                 "synced_at": record.synced_at,
+                "synced_path": record.synced_path,
             },
         }
 
@@ -1659,6 +1677,10 @@ class ClipNotes(_PluginBase):
         target_status = (payload.status if payload and payload.status else NoteStatus.SYNCED.value)
         if target_status not in {item.value for item in NoteStatus}:
             raise HTTPException(status_code=400, detail="状态非法")
+        raw_synced_path = str(payload.note or "").strip() if payload else ""
+        synced_path = normalize_synced_path(raw_synced_path)
+        if raw_synced_path and not synced_path:
+            raise HTTPException(status_code=400, detail="note 必须是 Vault 相对路径")
         current_hash = record.content_hash or markdown_hash(record.markdown)
         # 客户端确认的是旧版本时不做标记，让其重新拉取，避免漏更新
         if payload and payload.content_hash and payload.content_hash != current_hash:
@@ -1669,11 +1691,14 @@ class ClipNotes(_PluginBase):
                 "status": record.status,
                 "revision": record.revision,
                 "content_hash": current_hash,
+                "synced_path": record.synced_path,
                 "message": "客户端同步的是旧版本，请重新拉取该笔记",
             }
         record.status = target_status
         if target_status == NoteStatus.SYNCED.value:
             record.synced_at = now_text()
+        if synced_path:
+            record.synced_path = synced_path
         storage.save(record)
         return {
             "success": True,
@@ -1683,6 +1708,7 @@ class ClipNotes(_PluginBase):
             "synced_at": record.synced_at,
             "revision": record.revision,
             "content_hash": record.content_hash or current_hash,
+            "synced_path": record.synced_path,
         }
 
     def api_get_asset(self, asset_hash: str) -> FileResponse:

@@ -3,7 +3,6 @@
 把微信、小红书、抖音的收藏链接丢给 MoviePilot，自动抓取正文 → 用系统已配置的 LLM 整理 → 生成 Obsidian 风格 Markdown，并通过 REST API 交付给未来的 Obsidian 插件（本插件**不直接读写 Obsidian Vault**）。
 
 - 插件 ID：`ClipNotes`
-- 当前版本：`1.0.9`
 - 接口契约：[SYNC_PROTOCOL.md](./SYNC_PROTOCOL.md)（增量同步协议 v1，客户端按这份文档实现即可）
 
 ---
@@ -205,6 +204,7 @@ content_id: 24e81f5e89e08f72
 | 标签 / 摘要 | AI 生成 |
 | content_id | 去重标识，同一条笔记在 API 与 ack 中都用它 |
 | 抓取时间 / 整理时间 | 用于排查与同步比对 |
+| synced_path | 客户端最后一次成功同步时的 Vault 相对路径，用于 retry 或标题变化后的原文件定位 |
 
 > 正文中的图片仍是原始 CDN 地址（会过期）。同步端应下载 `assets[].api_path` 对应的本地文件并替换引用——详见 [SYNC_PROTOCOL.md](./SYNC_PROTOCOL.md)。
 
@@ -238,7 +238,7 @@ content_id: 24e81f5e89e08f72
 | GET | `/notes` | 列表 / 增量同步（游标分页） |
 | GET | `/notes/{id}` | 单条详情（Markdown、元数据、资源清单） |
 | GET | `/assets/{hash}` | 下载图片资源 |
-| POST | `/notes/{id}/ack` | 同步确认（写回状态，可校验版本） |
+| POST | `/notes/{id}/ack` | 同步确认（写回状态、Vault 相对路径，可校验版本） |
 | POST | `/notes` | 提交链接，`{"url": "..."}` |
 | GET | `/stats` | 统计与运行参数概况 |
 

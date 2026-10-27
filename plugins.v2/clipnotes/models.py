@@ -191,6 +191,8 @@ class NoteRecord:
     submit_channel: str = ""
     submit_source: str = ""
     synced_at: str = ""
+    # 客户端最后一次成功同步时使用的 Vault 相对路径
+    synced_path: str = ""
     # 单调递增的版本号，每次保存自增，用于增量同步定位变化
     revision: int = 0
     # Markdown 内容摘要，作为同步端的 ETag，内容未变时不重复拉取
@@ -243,6 +245,7 @@ class NoteRecord:
             "submit_channel": self.submit_channel,
             "submit_source": self.submit_source,
             "synced_at": self.synced_at,
+            "synced_path": self.synced_path,
             "revision": self.revision,
             "content_hash": self.content_hash,
             "notified": self.notified,
@@ -266,6 +269,7 @@ class NoteRecord:
             "content_hash": self.content_hash,
             "assets_count": len(self.assets or []),
             "markdown_size": len(self.markdown or ""),
+            "synced_path": self.synced_path,
         }
 
     @classmethod
@@ -291,6 +295,7 @@ class NoteRecord:
             submit_channel=str(data.get("submit_channel") or ""),
             submit_source=str(data.get("submit_source") or ""),
             synced_at=str(data.get("synced_at") or ""),
+            synced_path=str(data.get("synced_path") or ""),
             revision=int(data.get("revision") or 0),
             content_hash=str(data.get("content_hash") or ""),
             notified=bool(data.get("notified")),
