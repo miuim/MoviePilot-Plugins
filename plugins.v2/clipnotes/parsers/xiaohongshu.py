@@ -154,7 +154,12 @@ class XiaohongshuParser(BaseParser):
         if not note:
             return None
         desc = str(note.get("desc") or "").strip()
-        title = str(note.get("title") or "").strip() or desc.splitlines()[0][:60]
+        title = str(note.get("title") or "").strip()
+        if not title:
+            first_line = next((line.strip() for line in desc.splitlines() if line.strip()), "")
+            title = first_line[:60]
+        if not title:
+            title = str(note.get("noteId") or note.get("id") or "小红书图片笔记").strip()
         user = note.get("user") if isinstance(note.get("user"), dict) else {}
         # 标题已由 frontmatter 与 H1 承载，正文只保留正文描述
         content = desc or title

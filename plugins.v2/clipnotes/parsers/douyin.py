@@ -124,11 +124,16 @@ class DouyinParser(BaseParser):
         """
         soup = self.soup(page)
         description = self._normalize(self.meta_content(soup, "description", "og:description"))
-        if not description or self._is_placeholder(description):
-            return None
-        body, author, publish_time, likes = self._split_description(description)
+        has_description = bool(description) and not self._is_placeholder(description)
+        body, author, publish_time, likes = self._split_description(description) if has_description else ("", "", "", "")
         tags = self._tags(body) or self._keywords(soup)
-        title = self._title(body, tags, author)
+        page_title = self._normalize(self.meta_content(soup, "og:title")) or self._normalize(
+            self.text_of(soup.select_one("title"))
+        )
+        cover = self._cover(page)
+        if not body and not page_title and not tags and not author and not cover:
+            return None
+        title = self._title(body, tags, author) if has_description else (page_title or self._title("", tags, author))
         metadata = {
             "site": self.site_name,
             "aweme_id": self._aweme_id(final_url) or self._aweme_id(url),
@@ -143,7 +148,7 @@ class DouyinParser(BaseParser):
             author=author,
             publish_time=publish_time,
             content=body or title,
-            images=self._cover(page),
+            images=cover,
             metadata={key: value for key, value in metadata.items() if value},
         )
 

@@ -113,7 +113,7 @@ class ClipNotes(_PluginBase):
     # 插件图标
     plugin_icon = "clipnotes.png"
     # 插件版本
-    plugin_version = "1.1.8"
+    plugin_version = "1.2.0"
     # 插件标签
     plugin_label = "知识管理"
     # 插件作者
